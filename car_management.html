@@ -150,37 +150,45 @@ header img {
 
     <button type="submit">Submit</button>
   </form>
+	<div id="successMessage" style="text-align: center; color: green;"></div>
+
   <footer>
     &copy; 2023 Balai Pelaksana Penyediaan Perumahan Jawa III, Direktorat Jenderal Perumahan, Kementerian Pekerjaan umum dan Perumahan Rakyat.
   </footer>
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const form = document.getElementById('myForm');
-      form.addEventListener('submit', function(event) {
-        event.preventDefault();
+    document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('myForm');
+  const successMessage = document.getElementById('successMessage');
 
-        const formData = new FormData(form);
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
 
-        // Convert form data to JSON object
-        const jsonObject = {};
-        formData.forEach(function(value, key) {
-          jsonObject[key] = value;
-        });
+    const formData = new FormData(form);
 
-        // Generate a unique callback name
-        const callbackName = 'handleResponse' + Math.floor(Math.random() * 10000);
-
-        // Create a global callback function
-        window[callbackName] = function(response) {
-          console.log(response);
-          delete window[callbackName]; // Remove the callback function
-        };
-
-        const script = document.createElement('script');
-        script.src = `https://script.google.com/macros/s/AKfycbyNMhXlWpWEuZ8R0SSvipUMJanPpTELUEj7VMqcoyaIo7x5AB99JPoyX69xRJ52dJaWTA/exec?callback=${callbackName}&data=${JSON.stringify(jsonObject)}`;
-        document.body.appendChild(script);
-      });
+    // Convert form data to JSON object
+    const jsonObject = {};
+    formData.forEach(function (value, key) {
+      jsonObject[key] = value;
     });
+
+    // Generate a unique callback name
+    const callbackName = 'handleResponse' + Math.floor(Math.random() * 10000);
+
+    // Create a global callback function
+    window[callbackName] = function (response) {
+      if (response.message) {
+        successMessage.innerHTML = response.message; // Display success message
+      } else if (response.error) {
+        successMessage.innerHTML = response.error; // Display error message
+      }
+      delete window[callbackName]; // Remove the callback function
+    };
+
+    const script = document.createElement('script');
+    script.src = `https://script.google.com/macros/s/AKfycbyNMhXlWpWEuZ8R0SSvipUMJanPpTELUEj7VMqcoyaIo7x5AB99JPoyX69xRJ52dJaWTA/exec?callback=${callbackName}&data=${JSON.stringify(jsonObject)}`;
+    document.body.appendChild(script);
+  });
+});
   </script>
 </body>
 </html>
