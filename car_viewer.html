@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Car Usage Timeline</title>
+    <!-- Include vis.js and moment.js libraries -->
+    <link href="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css">
+    <script src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <!-- Include Material Design Lite (MDL) -->
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <style>
+        /* Add your custom CSS styles here */
+        .timeline-bar {
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            text-align: center;
+            margin: 20px 0;
+			padding-top: 20px
+        }
+		.date-picker {
+    display: flex;
+    align-items: center;
+}
+
+.mdl-textfield {
+    margin-right: 16px;
+    position: relative;
+}
+
+.mdl-textfield input[type="date"] {
+    padding-right: 1.5em;
+    background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wPAAwAB/6N9KgAAAABJRU5ErkJggg==') right center no-repeat transparent;
+    background-size: 1em;
+}
+
+.mdl-textfield label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    transition: 0.2s;
+}
+
+.mdl-textfield input[type="date"]:focus + .mdl-textfield__label,
+.mdl-textfield input[type="date"]:not(:placeholder-shown) + .mdl-textfield__label {
+    top: -1.2em;
+    left: 0;
+    font-size: 12px;
+    color: #000;
+}
+/* Define a class for custom header styles */
+.custom-header {
+    background-color: #007bff; /* Change the background color */
+    color: #fff; /* Change the text color */
+    text-align: center; /* Center-align text */
+    padding: 10px; /* Add padding */
+	margin-bottom: 20px;
+}
+
+.custom-header .mdl-layout-title {
+    font-size: 24px; /* Change the font size of the title */
+}
+header img {
+        width: 50px; /* Set the width to 100px */
+        height: 50px; /* Set the height to 100px */
+		margin-right: 10px;
+    }
+    </style>
+</head>
+<body>
+    <div class="mdl-layout mdl-js-layout">
+<header class="mdl-layout__header mdl-layout__header--scroll mdl-color--primary custom-header">
+    <div class="mdl-layout__header-row">
+	<img src="https://pbs.twimg.com/profile_images/1519149404850376706/EyaYDWzy_400x400.jpg" alt="BP2P Jawa III">
+        <span class="mdl-layout-title">Rencana Penggunaan Kendaraan Dinas BP2P Jawa III</span>
+    </div>
+</header>
+
+        <main class="mdl-layout__content">
+            <div class="page-content">
+                <div id="timeline" class="mdl-card mdl-shadow--4dp" style="width: 80%; margin: 0 auto;"></div>
+<div class="mdl-card mdl-shadow--4dp" style="width: 80%; margin: 0 auto; padding: 16px;">
+    <div style="display: flex; justify-content: flex-start; align-items: center;">
+        <div style="text-align: center; width: 15%;">
+            <label class="mdl-textfield__label" style="display: block;">Filter Tanggal</label>
+        </div>
+        <div class="mdl-textfield mdl-js-textfield" style="margin-right: 16px;">
+            <input class="mdl-textfield__input" type="date" id="startDatePicker">
+            <label class="mdl-textfield__label" for="startDatePicker" style="top: 0; left: 0; pointer-events: none;">Tanggal Awal</label>
+        </div>
+        <div class="mdl-textfield mdl-js-textfield" style="margin-right: 16px;">
+            <input class="mdl-textfield__input" type="date" id="endDatePicker">
+            <label class="mdl-textfield__label" for="endDatePicker" style="top: 0; left: 0; pointer-events: none;">Tanggal Akhir</label>
+        </div>
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored mdl-js-ripple-effect" onclick="applyDateFilter()">
+            Terapkan
+        </button>
+    </div>
+</div>
+            </div>
+        </main>
+    </div>
+	<script>
+// Function to generate a random light color
+function getRandomLightColor() {
+    const letters = '89ABCDEF'; // Use lighter color letters
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 8)]; // Adjust the range for lighter colors
+    }
+    return color;
+}
+
+// Function to determine text color based on background color luminance
+function getTextColor(backgroundColor) {
+    if (backgroundColor) {
+        const r = parseInt(backgroundColor.slice(1, 3), 16);
+        const g = parseInt(backgroundColor.slice(3, 5), 16);
+        const b = parseInt(backgroundColor.slice(5, 7), 16);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+        // Determine the label text color based on background brightness
+        const threshold = 128; // Adjust as needed
+        return brightness > threshold ? 'black' : 'white';
+    }
+    // If the backgroundColor is undefined or empty, you can choose a default text color
+    return 'black'; // You can adjust the default color as needed
+}
+
+// URL to the provided Google Sheets published CSV file
+const dataURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQCxMUvDa3gGecUh4b23B_pViMHa7C6qBmB_0tU_QbGrBky9xuDSJxN7EbG2J3p5PyYg0zmFQvQcMzA/pub?output=csv';
+
+// Variables for the timeline and data
+let timeline;
+let items;
+let data;
+
+// Function to fetch the data from the published CSV file
+async function fetchData() {
+    const response = await fetch(dataURL);
+    const rawData = await response.text();
+    return rawData;
+}
+const dateFormat = 'YYYY-MM-DD';
+
+// Function to create the timeline
+async function createCarUsageTimeline() {
+    const rawData = await fetchData();
+    const rows = rawData.split('\n').map(row => row.replace('\r', ''));
+    data = [];
+
+const headers = rows[0].split(',');
+const nameIndex = headers.indexOf('Nama Personil');
+const carNameIndex = headers.indexOf('Rencana Mobil Yang Digunakan');
+const departureDateIndex = headers.indexOf('Tanggal Berangkat');
+const returnDateIndex = headers.indexOf('Tanggal Pulang');
+const locationIndex = headers.indexOf('Lokasi Tujuan');
+const agendaIndex = headers.indexOf('Agenda Dinas');
+
+const colorMap = {}; // Map to store unique and light colors for each user
+
+for (let i = 1; i < rows.length; i++) {
+    const row = rows[i].split(',');
+    const name = row[nameIndex];
+    const carName = row[carNameIndex];
+    const departureDate = moment(row[departureDateIndex]);
+    const returnDate = moment(row[returnDateIndex]);
+    const location = row[locationIndex];
+    const agenda = row[agendaIndex];
+	console.log(row, agendaIndex, agenda)
+
+    // Generate a unique and light color for each user
+    if (!colorMap[name]) {
+        colorMap[name] = getRandomLightColor();
+    }
+
+    // Parse the CSV data correctly
+    const item = {
+        id: i,
+        content: `${carName} - ${location} - ${agenda}`,
+        start: departureDate,
+        end: returnDate,
+        group: name,
+        style: `background-color: ${colorMap[name]}`,
+    };
+
+    data.push(item);
+}
+
+console.log(`Number of records: ${data.length}`);
+console.log('Data array:', data);
+
+items = new vis.DataSet(data);
+
+const container = document.getElementById('timeline');
+const groups = new vis.DataSet(Object.keys(colorMap).map((name) => ({ id: name, content: name })));
+
+const currentDate = moment();
+const startDate = moment(currentDate).subtract(4, 'days');
+const endDate = moment(currentDate).add(5, 'days');
+
+const options = {
+    zoomMin: 1000 * 60 * 60 * 24, // Minimum zoom level is 1 day
+    start: startDate, // Set the start date to 4 days before the current date
+    end: endDate, // Set the end date to 5 days after the current date
+    margin: {
+        item: 50,
+    },
+};
+
+timeline = new vis.Timeline(container, items, groups, options);
+
+// Set the text color for bar labels
+items.get().forEach((item) => {
+    const backgroundColor = item.style.backgroundColor;
+    const textColor = getTextColor(backgroundColor);
+    item.style.color = textColor;
+});
+}
+
+// Function to apply date filtering to the timeline
+function applyDateFilter() {
+    const startDate = moment(document.getElementById('startDatePicker').value);
+    const endDate = moment(document.getElementById('endDatePicker').value);
+
+    // Filter the data to display within the selected date range
+    items.clear();
+    data.forEach((item) => {
+        if (item.start >= startDate && item.start <= endDate) {
+            items.add(item);
+        }
+    });
+
+    // Fit the timeline to the filtered data
+    timeline.fit();
+}
+
+// Call the function to create the car usage timeline
+createCarUsageTimeline();
+</script>
+
+
+</body>
+</html>
