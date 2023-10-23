@@ -136,16 +136,18 @@ form button[type="button"]:hover {
           jsonObject[key] = value;
         });
 
-        fetch("https://script.google.com/macros/s/AKfycbwFs82kvKYmL_qOTGQ-M0TnBp-nJEIdXGK6cWHO-r4Z8xEOAUOlJ0boShU7hz3TkJky8w/exec", {
-          method: "POST",
-          body: JSON.stringify(jsonObject),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        })
-        .then(response => response.text())
-        .then(data => console.log(data))
-        .catch(error => console.error(error));
+        // Generate a unique callback name
+        const callbackName = 'handleResponse' + Math.floor(Math.random() * 10000);
+
+        // Create a global callback function
+        window[callbackName] = function(response) {
+          console.log(response);
+          delete window[callbackName]; // Remove the callback function
+        };
+
+        const script = document.createElement('script');
+        script.src = `https://script.google.com/macros/s/AKfycbyNMhXlWpWEuZ8R0SSvipUMJanPpTELUEj7VMqcoyaIo7x5AB99JPoyX69xRJ52dJaWTA/exec?callback=${callbackName}&data=${JSON.stringify(jsonObject)}`;
+        document.body.appendChild(script);
       });
     });
   </script>
